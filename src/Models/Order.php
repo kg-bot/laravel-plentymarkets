@@ -6,19 +6,44 @@
  * Time: 01.30
  */
 
-namespace Rackbeat\Models;
+namespace KgBot\PlentyMarket\Models;
 
 
-use Rackbeat\Utils\Model;
+use KgBot\PlentyMarket\Utils\Model;
 
 class Order extends Model
 {
-    protected $entity     = 'orders';
-    protected $primaryKey = 'number';
-    
-    public function getPDF() {
+    protected $entity       = 'orders';
+    protected $primaryKey   = 'id';
+    protected $resource_key = 'entries';
+
+    /**
+     * @return mixed
+     * @throws \KgBot\PlentyMarket\Exceptions\PlentyMarketClientException
+     * @throws \KgBot\PlentyMarket\Exceptions\PlentyMarketRequestException
+     */
+    public function payments()
+    {
+
         return $this->request->handleWithExceptions( function () {
-            return $this->request->client->get( "{$this->entity}/{$this->{$this->primaryKey}}.pdf")->getBody()->getContents();
+
+            $response     = $this->request->client->get( "payments/orders/{$this->{$this->primaryKey}}" );
+            $responseData = json_decode( (string) $response->getBody() );
+
+            $fetchedItems = $responseData;
+            $items        = collect( [] );
+
+            foreach ( $fetchedItems as $index => $item ) {
+
+
+                /** @var Model $model */
+                $model = new Payment( $this->request, $item );
+
+                $items->push( $model );
+            }
+
+            return $items;
+
         } );
     }
 }

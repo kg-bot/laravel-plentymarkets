@@ -6,7 +6,7 @@
  * Time: 17.03
  */
 
-namespace Rackbeat\Utils;
+namespace KgBot\PlentyMarket\Utils;
 
 
 class Model

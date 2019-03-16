@@ -6,10 +6,10 @@
  * Time: 17.00
  */
 
-namespace Rackbeat\Builders;
+namespace KgBot\PlentyMarket\Builders;
 
-use Rackbeat\Utils\Model;
-use Rackbeat\Utils\Request;
+use KgBot\PlentyMarket\Utils\Model;
+use KgBot\PlentyMarket\Utils\Request;
 
 
 class Builder
@@ -17,6 +17,7 @@ class Builder
     protected $entity;
     /** @var Model */
     protected $model;
+    protected $resource_key;
     private   $request;
 
     public function __construct( Request $request )
@@ -31,34 +32,18 @@ class Builder
      */
     public function get( $filters = [] )
     {
-        $urlFilters = '?limit=1500';
+        $filters[] = [ 'itemsPerPage', 250 ];
 
-        if ( count( $filters ) > 0 ) {
-
-            $urlFilters .= '&filter=';
-            $i          = 1;
-
-            foreach ( $filters as $filter ) {
-
-                $urlFilters .= $filter[ 0 ] . $this->switchComparison( $filter[ 1 ] ) .
-                               $this->escapeFilter( $filter[ 2 ] ); // todo fix arrays aswell ([1,2,3,...] string)
-
-                if ( count( $filters ) > $i ) {
-
-                    $urlFilters .= '$and:'; // todo allow $or: also
-                }
-
-                $i++;
-            }
-        }
+        $urlFilters = $this->parseFilters( $filters );
 
         return $this->request->handleWithExceptions( function () use ( $urlFilters ) {
 
             $response     = $this->request->client->get( "{$this->entity}{$urlFilters}" );
             $responseData = json_decode( (string) $response->getBody() );
-            $fetchedItems = collect( $responseData );
+            $fetchedItems = collect( $responseData->entries );
             $items        = collect( [] );
-            $pages        = $responseData->pages;
+            $pages        = $responseData->lastPageNumber;
+
 
             foreach ( $fetchedItems->first() as $index => $item ) {
 
@@ -75,43 +60,31 @@ class Builder
         } );
     }
 
-    private function switchComparison( $comparison )
+    protected function parseFilters( $filters = [] )
     {
-        switch ( $comparison ) {
-            case '=':
-            case '==':
-                $newComparison = '$eq:';
-                break;
-            case '!=':
-                $newComparison = '$ne:';
-                break;
-            case '>':
-                $newComparison = '$gt:';
-                break;
-            case '>=':
-                $newComparison = '$gte:';
-                break;
-            case '<':
-                $newComparison = '$lt:';
-                break;
-            case '<=':
-                $newComparison = '$lte:';
-                break;
-            case 'like':
-                $newComparison = '$like:';
-                break;
-            case 'in':
-                $newComparison = '$in:';
-                break;
-            case '!in':
-                $newComparison = '$nin:';
-                break;
-            default:
-                $newComparison = "${$comparison}:";
-                break;
+
+        $urlFilters = '';
+
+        if ( count( $filters ) > 0 ) {
+
+            $i = 1;
+
+            $urlFilters .= '?';
+
+            foreach ( $filters as $filter ) {
+
+                $urlFilters .= $filter[ 0 ] . '=' . $this->escapeFilter( $filter[ 1 ] );
+
+                if ( count( $filters ) > $i ) {
+
+                    $urlFilters .= '&';
+                }
+
+                $i++;
+            }
         }
 
-        return $newComparison;
+        return $urlFilters;
     }
 
     private function escapeFilter( $variable )
@@ -176,5 +149,63 @@ class Builder
         $this->entity = $new_entity;
 
         return $this->entity;
+    }
+
+    public function all( $filters = [] )
+    {
+        $page = 1;
+
+        $items = collect();
+
+        $response = function ( $filters, $page ) {
+
+            $filters[] = [ 'itemsPerPage', 250 ];
+            $filters[] = [ 'page', $page ];
+
+            $urlFilters = $this->parseFilters( $filters );
+
+            return $this->request->handleWithExceptions( function () use ( $urlFilters ) {
+
+                $response     = $this->request->client->get( "{$this->entity}{$urlFilters}" );
+                $responseData = json_decode( (string) $response->getBody() );
+
+                $fetchedItems = collect( ( $this->resource_key !== null ) ?
+                    $responseData->{$this->resource_key} : $responseData );
+                $items        = collect( [] );
+                $pages        = $responseData->lastPageNumber ?? 1;
+
+
+                foreach ( $fetchedItems as $index => $item ) {
+
+
+                    /** @var Model $model */
+                    $model = new $this->model( $this->request, $item );
+
+                    $items->push( $model );
+
+
+                }
+
+                return (object) [
+
+                    'items' => $items,
+                    'pages' => $pages,
+                ];
+            } );
+        };
+
+        do {
+
+            $resp = $response( $filters, $page );
+
+            $items = $items->merge( $resp->items );
+            $page++;
+            sleep( 2 );
+
+        } while ( $page <= $resp->pages );
+
+
+        return $items;
+
     }
 }
