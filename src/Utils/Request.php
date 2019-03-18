@@ -65,7 +65,7 @@ class Request
      */
     protected function getToken( $username, $password )
     {
-        $url = $this->base_uri . "rest/login?username={$username}&password={$password}";
+        $url = $this->base_uri . "rest/login";
 
         $userAgent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13';
 
@@ -73,6 +73,7 @@ class Request
         curl_setopt( $ch, CURLOPT_USERAGENT, $userAgent );
         curl_setopt( $ch, CURLOPT_URL, $url );
         curl_setopt( $ch, CURLOPT_POST, 1 );
+        curl_setopt( $ch, CURLOPT_POSTFIELDS, "username={$username}&password={$password}" );
         curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
         $response = json_decode( curl_exec( $ch ) );
 
