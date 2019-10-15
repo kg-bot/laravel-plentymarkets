@@ -69,7 +69,7 @@ class Builder
             $filters['itemsPerPage'] = 250;
         }
 
-        return http_build_query($filters);
+        return '?'.http_build_query($filters);
 
     }
 
