@@ -102,9 +102,7 @@ class Builder
     {
         return $this->request->handleWithExceptions( function () use ( $data ) {
 
-            $response = $this->request->client->post( "{$this->entity}", [
-                'json' => $data,
-            ] );
+            $response = $this->request->client->post( "{$this->entity}", $data);
 
             $responseData = collect( json_decode( (string) $response->getBody() ) );
 
