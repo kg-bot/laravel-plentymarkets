@@ -134,7 +134,7 @@ class Builder
 
         $response = function ( $filters, $page ) {
 
-            $filters[] = [ 'page', $page ];
+            $filters['page'] = $page;
 
             $urlFilters = $this->parseFilters( $filters );
 
