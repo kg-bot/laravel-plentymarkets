@@ -32,8 +32,6 @@ class Builder
      */
     public function get( $filters = [] )
     {
-        $filters[] = [ 'itemsPerPage', 250 ];
-
         $urlFilters = $this->parseFilters( $filters );
 
         return $this->request->handleWithExceptions( function () use ( $urlFilters ) {
@@ -60,72 +58,47 @@ class Builder
         } );
     }
 
-    protected function parseFilters( $filters = [] )
+    /**
+     * @param array $filters
+     * @return string
+     */
+    protected function parseFilters( $filters = [] ):string
     {
+        if(!isset($filters['itemsPerPage'])) {
 
-        $urlFilters = '';
-
-        if ( count( $filters ) > 0 ) {
-
-            $i = 1;
-
-            $urlFilters .= '?';
-
-            foreach ( $filters as $filter ) {
-
-                $urlFilters .= $filter[ 0 ] . '=' . $this->escapeFilter( $filter[ 1 ] );
-
-                if ( count( $filters ) > $i ) {
-
-                    $urlFilters .= '&';
-                }
-
-                $i++;
-            }
+            $filters['itemsPerPage'] = 250;
         }
 
-        return $urlFilters;
+        return http_build_query($filters);
+
     }
 
-    private function escapeFilter( $variable )
+    /**
+     * @param $id
+     * @return Model
+     * @throws \KgBot\PlentyMarket\Exceptions\PlentyMarketClientException
+     * @throws \KgBot\PlentyMarket\Exceptions\PlentyMarketRequestException
+     */
+    public function find( $id, $filters = [] ):Model
     {
-        $escapedStrings    = [
-            "$",
-            '(',
-            ')',
-            '*',
-            '[',
-            ']',
-            ',',
-        ];
-        $urlencodedStrings = [
-            '+',
-            ' ',
-        ];
-        foreach ( $escapedStrings as $escapedString ) {
+        $urlFilters = $this->parseFilters($filters);
 
-            $variable = str_replace( $escapedString, '$' . $escapedString, $variable );
-        }
-        foreach ( $urlencodedStrings as $urlencodedString ) {
+        return $this->request->handleWithExceptions( function () use ( $id, $urlFilters ) {
 
-            $variable = str_replace( $urlencodedString, urlencode( $urlencodedString ), $variable );
-        }
-
-        return $variable;
-    }
-
-    public function find( $id )
-    {
-        return $this->request->handleWithExceptions( function () use ( $id ) {
-
-            $response     = $this->request->client->get( "{$this->entity}/{$id}" );
+            $response     = $this->request->client->get( "{$this->entity}/{$id}{$urlFilters}" );
             $responseData = collect( json_decode( (string) $response->getBody() ) );
 
             return new $this->model( $this->request, $responseData->first() );
         } );
     }
 
-    public function create( $data )
+    /**
+     * @param $data
+     * @return Model
+     * @throws \KgBot\PlentyMarket\Exceptions\PlentyMarketClientException
+     * @throws \KgBot\PlentyMarket\Exceptions\PlentyMarketRequestException
+     */
+    public function create( $data ):Model
     {
         return $this->request->handleWithExceptions( function () use ( $data ) {
 
@@ -151,6 +124,10 @@ class Builder
         return $this->entity;
     }
 
+    /**
+     * @param array $filters
+     * @return mixed
+     */
     public function all( $filters = [] )
     {
         $page = 1;
@@ -159,7 +136,6 @@ class Builder
 
         $response = function ( $filters, $page ) {
 
-            $filters[] = [ 'itemsPerPage', 250 ];
             $filters[] = [ 'page', $page ];
 
             $urlFilters = $this->parseFilters( $filters );
