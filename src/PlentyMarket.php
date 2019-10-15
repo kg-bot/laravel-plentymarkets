@@ -8,6 +8,7 @@
 
 namespace KgBot\PlentyMarket;
 
+use KgBot\PlentyMarket\Builders\ItemBuilder;
 use KgBot\PlentyMarket\Builders\OrderBuilder;
 use KgBot\PlentyMarket\Builders\PaymentBuilder;
 use KgBot\PlentyMarket\Utils\Request;
@@ -51,5 +52,13 @@ class PlentyMarket
     {
 
         return new PaymentBuilder( $this->request );
+    }
+
+    /**
+     * @return ItemBuilder
+     */
+    public function items()
+    {
+        return new ItemBuilder($this->request);
     }
 }
