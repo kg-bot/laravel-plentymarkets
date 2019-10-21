@@ -40,10 +40,9 @@ class Builder
             $responseData = json_decode( (string) $response->getBody() );
             $fetchedItems = collect( $responseData->entries );
             $items        = collect( [] );
-            $pages        = $responseData->lastPageNumber;
 
 
-            foreach ( $fetchedItems->first() as $index => $item ) {
+            foreach ( $fetchedItems as $index => $item ) {
 
 
                 /** @var Model $model */
@@ -88,7 +87,7 @@ class Builder
             $response     = $this->request->client->get( "{$this->entity}/{$id}{$urlFilters}" );
             $responseData = collect( json_decode( (string) $response->getBody() ) );
 
-            return new $this->model( $this->request, $responseData->first() );
+            return new $this->model( $this->request, $responseData );
         } );
     }
 
@@ -106,7 +105,7 @@ class Builder
 
             $responseData = collect( json_decode( (string) $response->getBody() ) );
 
-            return new $this->model( $this->request, $responseData->first() );
+            return new $this->model( $this->request, $responseData );
         } );
     }
 
