@@ -103,7 +103,7 @@ class Builder
 
             $response = $this->request->client->post( "{$this->entity}", $data);
 
-            $responseData = collect( json_decode( (string) $response->getBody() ) );
+            $responseData = json_decode( (string) $response->getBody() );
 
             return new $this->model( $this->request, $responseData );
         } );
